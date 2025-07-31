@@ -104,7 +104,7 @@ function AddPrinter() {
                   <SelectValue placeholder={'Select a type'} />
                 </SelectTrigger>
                 <SelectContent className="w-full">
-                  <SelectItem value="barcode">Barcode</SelectItem>
+                  <SelectItem value="label">Label</SelectItem>
                   <SelectItem value="receipt">Receipt</SelectItem>
                   <SelectItem value="a4">Regular</SelectItem>
                 </SelectContent>

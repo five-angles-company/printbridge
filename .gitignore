@@ -4,4 +4,6 @@ out
 .DS_Store
 .eslintcache
 logs*
+changes.patch
+*.db
 

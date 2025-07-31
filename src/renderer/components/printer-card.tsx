@@ -36,7 +36,7 @@ function PrinterCard({ printer }: PrinterCardProps) {
         return <Receipt className="w-4 h-4" />
       case 'a4':
         return <FileText className="w-4 h-4" />
-      case 'barcode':
+      case 'label':
         return <Barcode className="w-4 h-4" />
       default:
         return <PrinterIcon className="w-4 h-4" />

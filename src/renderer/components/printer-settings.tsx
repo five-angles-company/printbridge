@@ -11,6 +11,7 @@ interface PrinterSettingsProps {
 }
 function PrinterSettings({ printer }: PrinterSettingsProps) {
   const [open, setOpen] = useState(false)
+  console.log(printer)
   const renderSettingsForm = () => {
     switch (printer.type) {
       case 'receipt':
