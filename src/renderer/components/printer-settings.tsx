@@ -1,7 +1,7 @@
 import { Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
-import { PrinterWithSettings } from 'src/shared/db-types'
+import { PrinterWithSettings } from 'src/shared/types/db-types'
 import ReceiptSettings from './forms/receipt-settings'
 import LabelSettings from './forms/label-settings'
 import { useState } from 'react'

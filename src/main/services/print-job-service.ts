@@ -5,7 +5,7 @@ import { ReceiptPrinter } from '../printers/receipt-printer'
 import { LabelPrinter } from '../printers/label-printer'
 import { db } from '../../db'
 import { printers, printJobs } from '../../db/schema'
-import { NewPrintJob } from '../../shared/db-types'
+import { NewPrintJob } from '../../shared/types/db-types'
 
 type PrinterType = 'receipt' | 'label'
 type JobStatus = 'pending' | 'completed' | 'failed'
@@ -24,7 +24,7 @@ interface JobFilters {
   offset?: number
 }
 
-export class PrintService extends EventEmitter {
+export class PrintJobService extends EventEmitter {
   private isRunning = false
 
   constructor(

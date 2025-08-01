@@ -1,5 +1,5 @@
 // Enhanced types.ts with additional type definitions
-import { printers, printerSettings, printJobs, settings } from '../db/schema'
+import { printers, printerSettings, printJobs, settings } from '../../db/schema'
 
 // Base types
 export type Printer = typeof printers.$inferSelect

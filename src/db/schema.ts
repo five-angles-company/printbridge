@@ -36,17 +36,18 @@ export const printJobs = sqliteTable('print_jobs', {
 
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  barcodePrinter: integer('barcode_printer_id')
-    .references(() => printers.id, { onDelete: 'restrict' })
-    .notNull(),
-  receiptPrinter: integer('receipt_printer_id')
-    .references(() => printers.id, { onDelete: 'restrict' })
-    .notNull(),
-  regularPrinter: integer('regular_printer_id')
-    .references(() => printers.id, { onDelete: 'restrict' })
-    .notNull(),
+  barcodePrinter: integer('barcode_printer_id').references(() => printers.id, {
+    onDelete: 'restrict'
+  }),
+  receiptPrinter: integer('receipt_printer_id').references(() => printers.id, {
+    onDelete: 'restrict'
+  }),
+  regularPrinter: integer('regular_printer_id').references(() => printers.id, {
+    onDelete: 'restrict'
+  }),
   serverUrl: text('server_url').notNull(),
-  token: text('token').notNull(),
+  apiKey: text('api_key').notNull(),
+  clientId: text('client_id').notNull(),
   createdAt: real('created_at').notNull(),
   updatedAt: real('updated_at').notNull()
 })

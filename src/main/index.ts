@@ -7,6 +7,10 @@ import { PrinterService } from './services/printer-service'
 import { ApiService } from './services/api-service'
 import { WindowManager } from './core/window-manager'
 import { MenuBuilder } from './core/menu-builder'
+import { SettingsService } from './services/settings-service'
+import { PrintJobService } from './services/print-job-service'
+import { ReceiptPrinter } from './printers/receipt-printer'
+import { LabelPrinter } from './printers/label-printer'
 
 class Main {
   public appCore: AppCore | null = null
@@ -23,12 +27,16 @@ class Main {
       }
 
       // DI Wiring
+      const receiptPrinter = new ReceiptPrinter()
+      const labelPrinter = new LabelPrinter()
       const printer = new PrinterService(this.logger)
-      const api = new ApiService(this.logger)
+      const printJob = new PrintJobService(this.logger, receiptPrinter, labelPrinter)
+      const settings = new SettingsService(this.logger)
+      const api = new ApiService(this.logger, printJob)
       const windowManager = new WindowManager(this.logger, process.env.NODE_ENV === 'development')
       const menuBuilder = new MenuBuilder(this.logger, windowManager)
 
-      this.appCore = new AppCore(this.logger, printer, api, windowManager, menuBuilder)
+      this.appCore = new AppCore(this.logger, printer, settings, api, windowManager, menuBuilder)
       await this.appCore.initialize()
 
       this.logger.info('✅ Application started')

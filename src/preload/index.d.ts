@@ -1,4 +1,4 @@
-import { IpcChannels } from 'src/shared/ipc-types'
+import { IpcChannels } from 'src/shared/types/ipc-types'
 
 export {}
 

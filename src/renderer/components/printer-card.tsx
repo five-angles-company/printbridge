@@ -4,7 +4,7 @@ import { Button } from './ui/button'
 import queryClient from '@renderer/lib/query-client'
 import { useMutation } from '@tanstack/react-query'
 import { invokeIpc } from '@renderer/lib/utils'
-import { PrinterWithSettings } from 'src/shared/db-types'
+import { PrinterWithSettings } from 'src/shared/types/db-types'
 import PrinterSettings from './printer-settings'
 
 interface PrinterCardProps {

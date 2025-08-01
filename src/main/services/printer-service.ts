@@ -4,7 +4,7 @@ import { LoggerService } from './logger-service'
 import { db } from '../../db'
 import { printers, printerSettings } from '../../db/schema'
 import { checkPrinterStatus } from '../utils/windows-printing'
-import { UpdatePrinter } from '../../shared/db-types'
+import { UpdatePrinter } from '../../shared/types/db-types'
 
 interface PrinterStatus {
   online: boolean
