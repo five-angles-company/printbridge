@@ -2,7 +2,7 @@ import { printRaw } from '../utils/windows-printing'
 
 // BasePrinter.ts
 export abstract class BasePrinter {
-  abstract print(printerName: string, data: unknown): Promise<void>
+  abstract print(printerName: string, jobName: string, data: unknown): Promise<void>
 
   printRawJob(printerName: string, data: Buffer, jobName = 'Node Print Job') {
     if (!printerName) throw new Error('Printer name is required')

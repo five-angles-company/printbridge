@@ -11,6 +11,7 @@ import type { LoggerService } from '../services/logger-service'
 import { PrinterHandlers } from '../handlers/printer-handlers'
 import { ApiHandlers } from '../handlers/api-handlers'
 import { SettingsService } from '../services/settings-service'
+import { PrintJobService } from '../services/print-job-service'
 
 export class AppCore {
   private readonly isDev: boolean
@@ -20,6 +21,7 @@ export class AppCore {
   constructor(
     private readonly logger: LoggerService,
     private readonly printer: PrinterService,
+    private readonly printJob: PrintJobService,
     private readonly settings: SettingsService,
     private readonly api: ApiService,
     public readonly windowManager: WindowManager,
@@ -70,6 +72,8 @@ export class AppCore {
 
     await this.printer.initialize()
     this.bindPrinterEvents()
+
+    await this.printJob.initialize()
 
     await this.api.initialize()
     this.bindApiEvents()

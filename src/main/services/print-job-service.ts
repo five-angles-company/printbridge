@@ -189,7 +189,7 @@ export class PrintJobService extends EventEmitter {
       const data = JSON.parse(job.data)
 
       if (printer.type === 'receipt') {
-        await this.receiptPrinter.print(printer.name, data)
+        await this.receiptPrinter.print(printer.name, job.name, 'src/main/templates/receipt.ejs')
       } else if (printer.type === 'label') {
         await this.labelPrinter.print(printer.name, data)
       } else {

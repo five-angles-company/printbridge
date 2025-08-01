@@ -6,14 +6,14 @@ import ejs from 'ejs'
 import { EscPosEncoder } from '../encoders/escpos-encoder'
 
 export class ReceiptPrinter extends BasePrinter {
-  async print(printerName: string, htmlFileName: string): Promise<void> {
+  async print(printerName: string, jobName: string, htmlFileName: string): Promise<void> {
     const imageBuffer = await this.renderHtmlToImage(htmlFileName)
 
     const encoder = new EscPosEncoder().initialize()
     await encoder.image(imageBuffer)
 
     const escposData = encoder.feed(6).cut().getBuffer()
-    await this.printRawJob(printerName, escposData)
+    await this.printRawJob(printerName, escposData, jobName)
   }
 
   private async renderHtmlToImage(htmlFileName: string, data?: any): Promise<Buffer> {

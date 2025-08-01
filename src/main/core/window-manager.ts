@@ -34,7 +34,7 @@ export class WindowManager {
     this.mainWindowId = window.id
 
     const indexHtml = this.isDevelopment
-      ? 'http://localhost:5173' // or your dev server URL
+      ? 'http://localhost:5174' // or your dev server URL
       : `file://${path.join(__dirname, '../renderer/index.html')}`
 
     await window.loadURL(indexHtml)

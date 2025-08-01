@@ -25,7 +25,7 @@ export class SettingsService extends EventEmitter {
         this.logger.warn(`No settings found. Creating defaults with clientId: ${clientId}`)
 
         await this.createSettings({
-          serverUrl: 'https://example.com',
+          serverUrl: 'http://localhost',
           apiKey: 'default-api-key',
           clientId,
           createdAt: Date.now(),

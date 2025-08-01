@@ -37,11 +37,13 @@ export type LabelData = {
 
 export type PrintJobData =
   | {
+      id: number
       name: string
       type: 'receipt'
       data: ReceiptData
     }
   | {
+      id: number
       name: string
       type: 'label'
       data: LabelData

@@ -36,7 +36,15 @@ class Main {
       const windowManager = new WindowManager(this.logger, process.env.NODE_ENV === 'development')
       const menuBuilder = new MenuBuilder(this.logger, windowManager)
 
-      this.appCore = new AppCore(this.logger, printer, settings, api, windowManager, menuBuilder)
+      this.appCore = new AppCore(
+        this.logger,
+        printer,
+        printJob,
+        settings,
+        api,
+        windowManager,
+        menuBuilder
+      )
       await this.appCore.initialize()
 
       this.logger.info('✅ Application started')
