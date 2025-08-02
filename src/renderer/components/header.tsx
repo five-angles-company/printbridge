@@ -1,9 +1,22 @@
-import { Printer, RefreshCw, Wifi, WifiOff } from 'lucide-react'
-import { useState } from 'react'
-import { Button } from './ui/button'
+import { Printer, Wifi, WifiOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 function Header() {
-  const [isConnected, setIsConnected] = useState(true)
+  const [isConnected, setIsConnected] = useState(false)
+
+  useEffect(() => {
+    window.electron.on('api:connected', () => {
+      setIsConnected(true)
+    })
+    window.electron.on('api:disconnected', () => {
+      setIsConnected(false)
+    })
+
+    return () => {
+      window.electron.off('api:connected', () => {})
+      window.electron.off('api:disconnected', () => {})
+    }
+  }, [])
   return (
     <header className="bg-white border-b border-slate-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -26,15 +39,6 @@ function Header() {
             {isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
             <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
           </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => setIsConnected(!isConnected)}
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </header>

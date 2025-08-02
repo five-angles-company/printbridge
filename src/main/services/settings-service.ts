@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { settings } from '../../db/schema'
 import { LoggerService } from './logger-service'
-import { NewSettings } from '../../shared/types/db-types'
+import { NewSettings, UpdateSettings } from '../../shared/types/db-types'
 import { getMachineClientId } from '../utils/machine-client-id'
 
 export class SettingsService extends EventEmitter {
@@ -75,7 +75,7 @@ export class SettingsService extends EventEmitter {
     }
   }
 
-  async updateSettings(data: NewSettings): Promise<void> {
+  async updateSettings(data: UpdateSettings): Promise<void> {
     const now = Date.now()
     const existing = await db.select().from(settings).limit(1).get()
 

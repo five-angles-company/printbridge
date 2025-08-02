@@ -5,7 +5,7 @@ import { ReceiptPrinter } from '../printers/receipt-printer'
 import { LabelPrinter } from '../printers/label-printer'
 import { db } from '../../db'
 import { printers, printJobs } from '../../db/schema'
-import { NewPrintJob } from '../../shared/types/db-types'
+import { NewPrintJob, PrintJob } from '../../shared/types/db-types'
 
 type PrinterType = 'receipt' | 'label'
 type JobStatus = 'pending' | 'completed' | 'failed'
@@ -179,19 +179,17 @@ export class PrintJobService extends EventEmitter {
     return printer
   }
 
-  private async print(printer: any, job: any): Promise<{ success: boolean; error?: string }> {
+  private async print(printer: any, job: PrintJob): Promise<{ success: boolean; error?: string }> {
     if (!job.data) throw new Error('No job data')
     if (printer.type !== job.type) {
       throw new Error(`Type mismatch: ${printer.type} != ${job.type}`)
     }
 
     try {
-      const data = JSON.parse(job.data)
-
       if (printer.type === 'receipt') {
-        await this.receiptPrinter.print(printer.name, job.name, 'src/main/templates/receipt.ejs')
+        await this.receiptPrinter.print(printer.name, job)
       } else if (printer.type === 'label') {
-        await this.labelPrinter.print(printer.name, data)
+        await this.labelPrinter.print(printer.name, job)
       } else {
         throw new Error(`Unsupported type: ${printer.type}`)
       }

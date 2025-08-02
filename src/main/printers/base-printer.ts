@@ -1,8 +1,15 @@
+import path from 'path'
+import { Printer, PrintJob } from '../../shared/types/db-types'
 import { printRaw } from '../utils/windows-printing'
 
 // BasePrinter.ts
 export abstract class BasePrinter {
-  abstract print(printerName: string, jobName: string, data: unknown): Promise<void>
+  protected readonly RECEIPT_TEMPLATE_PATH = path.join(
+    process.cwd(),
+    'src/main/templates/receipt.ejs'
+  )
+
+  abstract print(Printer: Printer, job: PrintJob): Promise<void>
 
   printRawJob(printerName: string, data: Buffer, jobName = 'Node Print Job') {
     if (!printerName) throw new Error('Printer name is required')

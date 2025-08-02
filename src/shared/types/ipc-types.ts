@@ -1,4 +1,10 @@
-import { NewPrinter, Printer, PrinterWithSettings } from './db-types'
+import {
+  NewPrinter,
+  Printer,
+  PrinterWithSettings,
+  SettingsWithPrinters,
+  UpdateSettings
+} from './db-types'
 
 export type IpcChannels = {
   'printer:print': {
@@ -55,6 +61,18 @@ export type IpcChannels = {
       printerName: string
       html?: string
     }
+    return: object
+  }
+
+  'settings:get': {
+    args: object
+    return: {
+      settings: SettingsWithPrinters
+      printers: Printer[]
+    }
+  }
+  'settings:update': {
+    args: UpdateSettings
     return: object
   }
 }

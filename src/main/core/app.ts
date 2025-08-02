@@ -12,6 +12,7 @@ import { PrinterHandlers } from '../handlers/printer-handlers'
 import { ApiHandlers } from '../handlers/api-handlers'
 import { SettingsService } from '../services/settings-service'
 import { PrintJobService } from '../services/print-job-service'
+import { SettingsHandlers } from '../handlers/settings-handlers'
 
 export class AppCore {
   private readonly isDev: boolean
@@ -105,6 +106,7 @@ export class AppCore {
   private initializeHandlers() {
     new PrinterHandlers(this.printer, this.logger)
     new ApiHandlers(this.api, this.logger)
+    new SettingsHandlers(this.printer, this.settings, this.logger)
   }
 
   private async initializeUI() {

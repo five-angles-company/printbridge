@@ -36,7 +36,7 @@ export const printJobs = sqliteTable('print_jobs', {
 
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  barcodePrinter: integer('barcode_printer_id').references(() => printers.id, {
+  labelPrinter: integer('label_printer_id').references(() => printers.id, {
     onDelete: 'restrict'
   }),
   receiptPrinter: integer('receipt_printer_id').references(() => printers.id, {
@@ -73,7 +73,7 @@ export const printJobsRelations = relations(printJobs, ({ one }) => ({
 
 export const settingsRelations = relations(settings, ({ one }) => ({
   barcodePrinter: one(printers, {
-    fields: [settings.barcodePrinter],
+    fields: [settings.labelPrinter],
     references: [printers.id],
     relationName: 'barcodePrinter'
   }),

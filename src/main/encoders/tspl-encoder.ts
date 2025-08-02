@@ -1,57 +1,78 @@
-// src/services/printers/builders/TsplBuilder.ts
 export class TsplEncoder {
   private lines: string[] = []
+  private labelWidth = 800
+  private labelHeight = 600
+  private dpi = 203
+
+  constructor(dpi = 203) {
+    this.dpi = dpi
+  }
+
+  private resolveX(x: number | 'center', width: number) {
+    return x === 'center' ? Math.floor((this.labelWidth - width) / 2) : x
+  }
+
+  private resolveY(y: number | 'center', height: number) {
+    return y === 'center' ? Math.floor((this.labelHeight - height) / 2) : y
+  }
 
   start(widthMm = 40, heightMm = 20, gapMm = 2): this {
+    this.labelWidth = Math.floor(widthMm * (this.dpi / 25.4))
+    this.labelHeight = Math.floor(heightMm * (this.dpi / 25.4))
     this.lines.push(`SIZE ${widthMm} mm, ${heightMm} mm`)
     this.lines.push(`GAP ${gapMm} mm, 0`)
     this.lines.push('DENSITY 8')
     this.lines.push('DIRECTION 1')
     this.lines.push('REFERENCE 0,0')
-    this.lines.push('CLS') // clear image buffer
+    this.lines.push('CLS')
     return this
   }
 
-  density(level: number): this {
-    // TSPL density range: 0-15 (0 = lightest, 15 = darkest)
-    if (level >= 0 && level <= 15) {
-      this.lines.push(`DENSITY ${level}`)
-    }
-    return this
-  }
-
-  speed(speed: number): this {
-    if (speed >= 1.0 && speed <= 14.0) {
-      this.lines.push(`SPEED ${speed}`)
-    }
-    return this
-  }
-
-  text(x: number, y: number, font = '0', rotation = 0, xMul = 1, yMul = 1, content = ''): this {
-    this.lines.push(`TEXT ${x},${y},"${font}",${rotation},${xMul},${yMul},"${content}"`)
+  text(
+    x: number | 'center',
+    y: number | 'center',
+    font = '0',
+    rot = 0,
+    xMul = 1,
+    yMul = 1,
+    content = ''
+  ): this {
+    const charWidth = 8 * xMul
+    const charHeight = 12 * yMul
+    const width = content.length * charWidth
+    const height = charHeight
+    const posX = this.resolveX(x, width)
+    const posY = this.resolveY(y, height)
+    this.lines.push(`TEXT ${posX},${posY},"${font}",${rot},${xMul},${yMul},"${content}"`)
     return this
   }
 
   barcode(
-    x: number,
-    y: number,
-    type = '128',
+    x: number | 'center',
+    y: number | 'center',
+    type = 'ean13',
     height = 100,
     readable = 1,
-    rotation = 0,
+    rot = 0,
     narrow = 2,
     wide = 2,
     content = ''
   ): this {
+    const modulesPerChar = 9
+    const barcodeWidth = content.length * modulesPerChar * narrow
+    const posX = this.resolveX(x, barcodeWidth)
+    const posY = this.resolveY(y, height)
     this.lines.push(
-      `BARCODE ${x},${y},"${type}",${height},${readable},${rotation},${narrow},${wide},"${content}"`
+      `BARCODE ${posX},${posY},"${type}",${height},${readable},${rot},${narrow},${wide},"${content}"`
     )
     return this
   }
 
-  qrcode(x: number, y: number, ecc = 'L', cellWidth = 4, content = 'testettt'): this {
-    console.log('QRCODE', x, y, ecc, cellWidth, content)
-    this.lines.push(`QRCODE ${x},${y},L,${cellWidth},A,0,"${content}"`)
+  qrcode(x: number | 'center', y: number | 'center', ecc = 'L', cellWidth = 4, content = ''): this {
+    const size = 21 * cellWidth
+    const posX = this.resolveX(x, size)
+    const posY = this.resolveY(y, size)
+    this.lines.push(`QRCODE ${posX},${posY},${ecc},${cellWidth},A,0,"${content}"`)
     return this
   }
 
@@ -60,11 +81,11 @@ export class TsplEncoder {
     return this
   }
 
-  getTspl(): string {
+  getOutput(): string {
     return this.lines.join('\r\n') + '\r\n'
   }
 
   getBuffer(): Buffer {
-    return Buffer.from(this.getTspl(), 'ascii')
+    return Buffer.from(this.getOutput(), 'ascii')
   }
 }
