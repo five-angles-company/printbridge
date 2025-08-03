@@ -173,6 +173,9 @@ export class PrintJobService extends EventEmitter {
 
   private async findPrinter(name: string) {
     const printer = await db.query.printers.findFirst({
+      with: {
+        printerSettings: true
+      },
       where: eq(printers.name, name)
     })
     if (!printer) throw new Error(`Printer '${name}' not found`)
@@ -187,9 +190,9 @@ export class PrintJobService extends EventEmitter {
 
     try {
       if (printer.type === 'receipt') {
-        await this.receiptPrinter.print(printer.name, job)
+        await this.receiptPrinter.print(printer, job)
       } else if (printer.type === 'label') {
-        await this.labelPrinter.print(printer.name, job)
+        await this.labelPrinter.print(printer, job)
       } else {
         throw new Error(`Unsupported type: ${printer.type}`)
       }

@@ -2,11 +2,23 @@ import {
   NewPrinter,
   Printer,
   PrinterWithSettings,
+  PrintJobWithPrinter,
   SettingsWithPrinters,
   UpdateSettings
 } from './db-types'
 
 export type IpcChannels = {
+  'dashboard:get': {
+    args: object
+    return: {
+      stats: {
+        totalPrinters: number
+        totalJobs: number
+        successRate: number
+      }
+      jobs: PrintJobWithPrinter[]
+    }
+  }
   'printer:print': {
     args: { printerName: string; data: string }
     return: { success: boolean; jobId: number }

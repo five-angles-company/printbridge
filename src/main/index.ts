@@ -11,6 +11,7 @@ import { SettingsService } from './services/settings-service'
 import { PrintJobService } from './services/print-job-service'
 import { ReceiptPrinter } from './printers/receipt-printer'
 import { LabelPrinter } from './printers/label-printer'
+import { DashboardService } from './services/dashboard-service'
 
 class Main {
   public appCore: AppCore | null = null
@@ -29,6 +30,7 @@ class Main {
       // DI Wiring
       const receiptPrinter = new ReceiptPrinter()
       const labelPrinter = new LabelPrinter()
+      const dashboard = new DashboardService(this.logger)
       const printer = new PrinterService(this.logger)
       const printJob = new PrintJobService(this.logger, receiptPrinter, labelPrinter)
       const settings = new SettingsService(this.logger)
@@ -38,6 +40,7 @@ class Main {
 
       this.appCore = new AppCore(
         this.logger,
+        dashboard,
         printer,
         printJob,
         settings,

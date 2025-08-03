@@ -12,8 +12,8 @@ export class LabelPrinter extends BasePrinter {
     if (!job.data) throw new Error('No job data')
     const data = JSON.parse(job.data) as LabelPrinterData
     const settings = JSON.parse(printer.printerSettings.settings)
-    const widthMm = settings?.width || 40
-    const heightMm = settings?.height || 20
+    const widthMm = settings?.label_width || 40
+    const heightMm = settings?.label_height || 20
 
     const encoder = new TsplEncoder().start(widthMm, heightMm, 2)
 

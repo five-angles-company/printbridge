@@ -15,6 +15,22 @@ export class PrinterService extends EventEmitter {
   private monitoringInterval?: NodeJS.Timeout
   private isRunning = false
 
+  private readonly defaultSettings = {
+    receipt: {
+      paper_size: '80',
+      print_density: '6',
+      print_speed: '1',
+      cut: true,
+      beep: true
+    },
+    label: {
+      label_width: '40',
+      label_height: '20',
+      print_density: '6',
+      print_speed: '1'
+    }
+  } as const
+
   constructor(private readonly logger: LoggerService) {
     super()
   }
@@ -77,20 +93,30 @@ export class PrinterService extends EventEmitter {
   // CRUD OPERATIONS
   // ===========================
 
-  async getPrinters() {
+  async getPrinters(limit?: number) {
     return await db.query.printers.findMany({
       with: {
         printerSettings: true
-      }
+      },
+      limit
     })
   }
 
   async createPrinter(printerName: string, printerType: 'receipt' | 'a4' | 'label') {
-    return await db
-      .insert(printers)
-      .values({ name: printerName, type: printerType })
-      .returning()
-      .get()
+    return await db.transaction(async (tx) => {
+      const printer = await tx
+        .insert(printers)
+        .values({ name: printerName, type: printerType })
+        .returning()
+        .get()
+
+      await tx.insert(printerSettings).values({
+        printerId: printer.id,
+        settings: JSON.stringify(this.defaultSettings[printerType])
+      })
+
+      return printer
+    })
   }
 
   async updatePrinter(printerId: number, data: UpdatePrinter) {

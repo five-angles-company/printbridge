@@ -2,7 +2,7 @@ import { Printer, Wifi, WifiOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 function Header() {
-  const [isConnected, setIsConnected] = useState(false)
+  const [isConnected, setIsConnected] = useState(true)
 
   useEffect(() => {
     window.electron.on('api:connected', () => {

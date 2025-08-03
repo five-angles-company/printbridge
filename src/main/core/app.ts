@@ -13,6 +13,8 @@ import { ApiHandlers } from '../handlers/api-handlers'
 import { SettingsService } from '../services/settings-service'
 import { PrintJobService } from '../services/print-job-service'
 import { SettingsHandlers } from '../handlers/settings-handlers'
+import { DashboardService } from '../services/dashboard-service'
+import { DashboardHandlers } from '../handlers/dashboard-handlers'
 
 export class AppCore {
   private readonly isDev: boolean
@@ -21,6 +23,7 @@ export class AppCore {
 
   constructor(
     private readonly logger: LoggerService,
+    private readonly dashboard: DashboardService,
     private readonly printer: PrinterService,
     private readonly printJob: PrintJobService,
     private readonly settings: SettingsService,
@@ -105,6 +108,7 @@ export class AppCore {
 
   private initializeHandlers() {
     new PrinterHandlers(this.printer, this.logger)
+    new DashboardHandlers(this.dashboard, this.logger)
     new ApiHandlers(this.api, this.logger)
     new SettingsHandlers(this.printer, this.settings, this.logger)
   }

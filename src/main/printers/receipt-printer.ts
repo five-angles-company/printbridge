@@ -4,17 +4,17 @@ import path from 'path'
 import { writeFileSync } from 'fs'
 import ejs from 'ejs'
 import { EscPosEncoder } from '../encoders/escpos-encoder'
-import { PrintJob } from '../../shared/types/db-types'
+import { Printer, PrintJob } from '../../shared/types/db-types'
 
 export class ReceiptPrinter extends BasePrinter {
-  async print(printerName: string, job: PrintJob): Promise<void> {
+  async print(printer: Printer, job: PrintJob): Promise<void> {
     const imageBuffer = await this.renderHtmlToImage(this.RECEIPT_TEMPLATE_PATH)
 
     const encoder = new EscPosEncoder().initialize()
     await encoder.image(imageBuffer)
 
     const escposData = encoder.feed(6).cut().getBuffer()
-    await this.printRawJob(printerName, escposData, job.name)
+    await this.printRawJob(printer.name, escposData, job.name)
   }
 
   private async renderHtmlToImage(htmlFileName: string, data?: any): Promise<Buffer> {
