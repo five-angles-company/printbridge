@@ -50,9 +50,21 @@ export class SettingsService extends EventEmitter {
   async loadSettings() {
     return await db.query.settings.findFirst({
       with: {
-        barcodePrinter: true,
-        receiptPrinter: true,
-        regularPrinter: true
+        barcodePrinter: {
+          with: {
+            printerSettings: true
+          }
+        },
+        receiptPrinter: {
+          with: {
+            printerSettings: true
+          }
+        },
+        regularPrinter: {
+          with: {
+            printerSettings: true
+          }
+        }
       }
     })
   }

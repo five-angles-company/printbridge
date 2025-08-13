@@ -136,7 +136,7 @@
       <table>
         <tbody>
           <tr>
-            <td class="left">Al Majmaa Branch</td>
+            <td class="left"><%= data.brand %> Branch</td>
             <td class="center">01</td>
             <td class="right">فرع المجمعة</td>
           </tr>
@@ -152,12 +152,12 @@
           </tr>
           <tr>
             <td class="left">Date / Time</td>
-            <td class="center">25.March.2025 10:25 PM</td>
+            <td class="center"><%= data.date %></td>
             <td class="right">التاريخ / الوقت</td>
           </tr>
           <tr>
             <td class="left">Telephone No.</td>
-            <td class="center">126485237</td>
+            <td class="center"><%= data.phone %></td>
             <td class="right">رقم الهاتف</td>
           </tr>
         </tbody>
@@ -175,45 +175,26 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Product row -->
-          <tr class="border-bottom">
-            <td class="left padding-sm">
-              Panadol Cold + Flu Vapour Release<br />
-              <span class="arabic-small">بانادول كولد + فلو أقراص البخاريه</span><br />
-              <span class="arabic-smaller">VAT 0%</span>
-            </td>
-            <td class="center padding-sm">1 Pack</td>
-            <td class="center padding-sm">8.00</td>
-            <td class="center padding-sm">8.00<br /><span class="arabic-smaller">0.00</span></td>
-          </tr>
-
-          <tr class="border-bottom">
-            <td class="left padding-sm">
-              Panadol Cold + Flu Vapour Release<br />
-              <span class="arabic-small">بانادول كولد + فلو أقراص البخاريه</span><br />
-              <span class="arabic-smaller">VAT 0%</span>
-            </td>
-            <td class="center padding-sm">1 Pack</td>
-            <td class="center padding-sm">8.00</td>
-            <td class="center padding-sm">8.00<br /><span class="arabic-smaller">0.00</span></td>
-          </tr>
-
-          <tr class="border-bottom">
-            <td class="left padding-sm">
-              Panadol Cold + Flu Vapour Release<br />
-              <span class="arabic-small">بانادول كولد + فلو أقراص البخاريه</span><br />
-              <span class="arabic-smaller">VAT 15%</span>
-            </td>
-            <td class="center padding-sm">1 Pack</td>
-            <td class="center padding-sm">8.00</td>
-            <td class="center padding-sm">8.00<br /><span class="arabic-smaller">1.20</span></td>
-          </tr>
+          <% data.items.forEach(function(item) { %>
+            <tr class="border-bottom">
+              <td class="left padding-sm">
+                <%= item.name %><br />
+                <!-- If you have Arabic names, insert here -->
+                <!-- <span class="arabic-small">...</span> -->
+              </td>
+              <td class="center padding-sm"><%= item.quantity %></td>
+              <td class="center padding-sm"><%= item.unitPrice.toFixed(2) %></td>
+              <td class="center padding-sm"><%= item.totalPrice.toFixed(2) %></td>
+            </tr>
+          <% }) %>
 
           <tr class="border-top">
             <td class="left padding-md bold">
               Total Quantity<br /><span class="rtl">إجمالي الكمية</span>
             </td>
-            <td class="center padding-md bold">3</td>
+            <td class="center padding-md bold">
+              <%= data.items.reduce((sum, i) => sum + i.quantity, 0) %>
+            </td>
             <td class="center padding-md"></td>
             <td class="center padding-md"></td>
           </tr>
@@ -223,43 +204,36 @@
 
     <div class="receipt-container">
       <table style="margin-top: 2rem">
-        <tbody>
+       <tbody>
           <tr>
             <td class="left padding-sm">
               Total Amount Without VAT<br />
               <span class="arabic-small">إجمالي القيمة بدون الضريبة</span>
             </td>
-            <td class="right padding-sm bold">24.00 SAR</td>
+            <td class="right padding-sm bold"><%= data.subtotal.toFixed(2) %> SAR</td>
           </tr>
           <tr>
             <td class="left padding-sm">
               Total VAT.<br />
               <span class="arabic-small">إجمالي ضريبة القيمة المضافة</span>
             </td>
-            <td class="right padding-sm bold">1.20 SAR</td>
+            <td class="right padding-sm bold"><%= data.tax.toFixed(2) %> SAR</td>
           </tr>
           <tr class="border-bottom">
             <td class="left padding-sm">
               Total Amount + VAT<br />
               <span class="arabic-small">إجمالي القيمة شامل الضريبة</span>
             </td>
-            <td class="right padding-sm bold">25.20 SAR</td>
+            <td class="right padding-sm bold"><%= data.total.toFixed(2) %> SAR</td>
           </tr>
-          <tr>
-            <td class="left padding-md">Span<br /><span class="arabic-small">شبكة</span></td>
-            <td class="right padding-md bold">20.20 SAR</td>
-          </tr>
-          <tr>
-            <td class="left padding-sm">Cash<br /><span class="arabic-small">نقدي</span></td>
-            <td class="right padding-sm bold">5.00 SAR</td>
-          </tr>
+          <!-- Additional rows if needed -->
         </tbody>
       </table>
     </div>
 
     <div class="footer-container">
-      <div class="qr-code-box">QR CODE</div>
-      <p class="gray">User ID: <strong>10</strong></p>
+      <img src="<%= qrcode %>" alt="QR Code" style="width: 100%; height: 100%;" />
+      <p class="gray">User ID: <strong><%= data.clientId || 'N/A' %></strong></p>
       <div>
         <p class="footer-message">We Wish You a Quick Recovery</p>
         <p class="footer-message rtl">نتمنى لكم الشفاء العاجل</p>

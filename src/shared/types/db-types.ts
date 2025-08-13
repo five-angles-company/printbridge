@@ -22,7 +22,7 @@ export type UpdateSettings = Partial<Omit<NewSettings, 'id' | 'createdAt'>>
 
 // Extended types with relations
 export type PrinterWithSettings = Printer & {
-  printerSettings: PrinterSettings
+  printerSettings: PrinterSettings | null
 }
 
 export type PrinterWithJobs = Printer & {

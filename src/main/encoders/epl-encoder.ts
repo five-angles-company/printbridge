@@ -1,4 +1,9 @@
-export class EplEncoder {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/services/encoders/epl-encoder.ts
+
+import { LabelEncoder } from './label-encoder'
+
+export class EplEncoder implements LabelEncoder {
   private lines: string[] = []
   private labelWidth = 800
   private labelHeight = 600
@@ -16,19 +21,40 @@ export class EplEncoder {
     return y === 'center' ? Math.floor((this.labelHeight - height) / 2) : y
   }
 
-  start(): this {
-    this.lines.push('N') // clear image buffer
+  start(_widthMm = 40, _heightMm = 20, _gapMm = 2): this {
+    this.lines.push('N')
     return this
   }
 
-  text(x: number | 'center', y: number | 'center', font = 3, rotation = 0, content = ''): this {
-    const charWidth = 8
-    const charHeight = 12
-    const width = charWidth * content.length
+  setSpeed(speed: number): this {
+    // EPL: Can't directly set speed in EPL, but some models support "q" for print speed
+    // We'll store as comment for unsupported cases
+    this.lines.push(`q${speed}`)
+    return this
+  }
+
+  setDensity(density: number): this {
+    // EPL: Set print darkness (D0 - D15)
+    this.lines.push(`D${density}`)
+    return this
+  }
+
+  text(
+    x: number | 'center',
+    y: number | 'center',
+    font: string | number = 3,
+    rot = 0,
+    xMul = 1,
+    yMul = 1,
+    content = ''
+  ): this {
+    const charWidth = 8 * xMul
+    const charHeight = 12 * yMul
+    const width = content.length * charWidth
     const height = charHeight
     const posX = this.resolveX(x, width)
     const posY = this.resolveY(y, height)
-    this.lines.push(`A${posX},${posY},${rotation},${font},1,1,N,"${content}"`)
+    this.lines.push(`A${posX},${posY},${rot},${font},${xMul},${yMul},N,"${content}"`)
     return this
   }
 
@@ -37,12 +63,16 @@ export class EplEncoder {
     y: number | 'center',
     type = '3',
     height = 100,
+    _readable = 1,
+    rot = 0,
+    narrow = 2,
+    wide = 2,
     content = ''
   ): this {
     const width = content.length * 16
     const posX = this.resolveX(x, width)
     const posY = this.resolveY(y, height)
-    this.lines.push(`B${posX},${posY},0,${type},2,2,${height},N,"${content}"`)
+    this.lines.push(`B${posX},${posY},${rot},${type},${narrow},${wide},${height},N,"${content}"`)
     return this
   }
 
@@ -51,11 +81,7 @@ export class EplEncoder {
     return this
   }
 
-  getOutput(): string {
-    return this.lines.join('\n')
-  }
-
   getBuffer(): Buffer {
-    return Buffer.from(this.getOutput(), 'ascii')
+    return Buffer.from(this.lines.join('\n'), 'ascii')
   }
 }

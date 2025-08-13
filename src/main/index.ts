@@ -31,7 +31,7 @@ class Main {
       const receiptPrinter = new ReceiptPrinter()
       const labelPrinter = new LabelPrinter()
       const dashboard = new DashboardService(this.logger)
-      const printer = new PrinterService(this.logger)
+      const printer = new PrinterService(this.logger, labelPrinter, receiptPrinter)
       const printJob = new PrintJobService(this.logger, receiptPrinter, labelPrinter)
       const settings = new SettingsService(this.logger)
       const api = new ApiService(this.logger, printJob, settings)

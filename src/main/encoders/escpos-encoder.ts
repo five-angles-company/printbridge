@@ -29,8 +29,17 @@ export class EscPosEncoder {
     return this.command([0x1b, 0x64, lines])
   }
 
-  cut(): this {
+  cut(on = true): this {
+    if (!on) return this
     return this.command([0x1d, 0x56, 0x00])
+  }
+
+  beep(on = true, times = 3, duration = 6): this {
+    if (!on) return this
+    // Clamp values to valid ranges
+    const n = Math.max(1, Math.min(times, 9))
+    const t = Math.max(1, Math.min(duration, 9))
+    return this.command([0x1b, 0x42, n, t])
   }
 
   private command(bytes: number[]): this {

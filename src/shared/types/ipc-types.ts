@@ -68,12 +68,12 @@ export type IpcChannels = {
     return: object
   }
 
-  'printers:print-html': {
+  'printers:test': {
     args: {
-      printerName: string
-      html?: string
+      printerId: number
+      type: 'label' | 'receipt' | 'a4'
     }
-    return: object
+    return: void
   }
 
   'settings:get': {

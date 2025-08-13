@@ -4,8 +4,10 @@ import { LoggerService } from './logger-service'
 import { ReceiptPrinter } from '../printers/receipt-printer'
 import { LabelPrinter } from '../printers/label-printer'
 import { db } from '../../db'
-import { printers, printJobs } from '../../db/schema'
-import { NewPrintJob, PrintJob } from '../../shared/types/db-types'
+import { printJobs } from '../../db/schema'
+import { NewPrintJob, PrinterWithSettings, PrintJob } from '../../shared/types/db-types'
+import { ReceiptPrinterData, ReceiptPrinterDataSchema } from '../../shared/schemas/receipt-printer'
+import { LabelPrinterData, LabelPrinterDataSchema } from '../../shared/schemas/label-printer'
 
 type PrinterType = 'receipt' | 'label'
 type JobStatus = 'pending' | 'completed' | 'failed'
@@ -56,58 +58,21 @@ export class PrintJobService extends EventEmitter {
   }
 
   // Core Operations
-  async execute(printerName: string, jobData: NewPrintJob): Promise<PrintResult> {
+  async execute(printer: PrinterWithSettings, jobData: NewPrintJob): Promise<PrintResult> {
     this.ensureRunning()
 
     try {
-      const printer = await this.findPrinter(printerName)
       const job = await db.insert(printJobs).values(jobData).returning().get()
-
       const result = await this.print(printer, job)
       await this.updateStatus(job.id, result.success ? 'completed' : 'failed', result.error)
 
-      this.emit('job:completed', { jobId: job.id, printerName, ...result })
+      this.emit('job:completed', { jobId: job.id, printerName: printer.name, ...result })
       return { ...result, jobId: job.id }
     } catch (error) {
       this.logger.error('Print execution failed:', error)
-      this.emit('job:failed', { printerName, error })
+      this.emit('job:failed', { printerName: printer.name, error })
       throw error
     }
-  }
-
-  async retry(jobId: number): Promise<PrintResult> {
-    this.ensureRunning()
-
-    const job = await this.getJob(jobId)
-    if (job.status === 'completed') {
-      throw new Error('Job already completed')
-    }
-
-    await this.updateStatus(jobId, 'pending')
-
-    try {
-      const printer = await this.findPrinter(job.printer.name)
-      const result = await this.print(printer, job)
-
-      await this.updateStatus(jobId, result.success ? 'completed' : 'failed', result.error)
-      this.emit('job:retried', { jobId, ...result })
-
-      return { ...result, jobId }
-    } catch (error) {
-      await this.updateStatus(jobId, 'failed', 'Retry failed')
-      throw error
-    }
-  }
-
-  async cancel(jobId: number) {
-    const job = await this.getJob(jobId)
-    if (job.status === 'completed') {
-      throw new Error('Cannot cancel completed job')
-    }
-
-    await this.updateStatus(jobId, 'failed', 'Cancelled')
-    this.emit('job:cancelled', { jobId })
-    return job
   }
 
   // CRUD Operations
@@ -153,46 +118,28 @@ export class PrintJobService extends EventEmitter {
     return db.delete(printJobs).where(eq(printJobs.id, jobId)).returning().get()
   }
 
-  async getStats() {
-    const jobs = await db.select({ status: printJobs.status }).from(printJobs)
-    const byStatus = jobs.reduce(
-      (acc, { status }) => {
-        acc[status] = (acc[status] || 0) + 1
-        return acc
-      },
-      {} as Record<JobStatus, number>
-    )
-
-    return { total: jobs.length, byStatus }
-  }
-
   // Private Helpers
   private ensureRunning() {
     if (!this.isRunning) throw new Error('Service not running')
   }
 
-  private async findPrinter(name: string) {
-    const printer = await db.query.printers.findFirst({
-      with: {
-        printerSettings: true
-      },
-      where: eq(printers.name, name)
-    })
-    if (!printer) throw new Error(`Printer '${name}' not found`)
-    return printer
-  }
-
-  private async print(printer: any, job: PrintJob): Promise<{ success: boolean; error?: string }> {
+  private async print(
+    printer: PrinterWithSettings,
+    job: PrintJob
+  ): Promise<{ success: boolean; error?: string }> {
     if (!job.data) throw new Error('No job data')
     if (printer.type !== job.type) {
       throw new Error(`Type mismatch: ${printer.type} != ${job.type}`)
     }
+    let printData: ReceiptPrinterData | LabelPrinterData
 
     try {
       if (printer.type === 'receipt') {
-        await this.receiptPrinter.print(printer, job)
+        printData = ReceiptPrinterDataSchema.parse(JSON.parse(job.data))
+        await this.receiptPrinter.print(printer, printData, job.name)
       } else if (printer.type === 'label') {
-        await this.labelPrinter.print(printer, job)
+        printData = LabelPrinterDataSchema.parse(JSON.parse(job.data))
+        await this.labelPrinter.print(printer, printData, job.name)
       } else {
         throw new Error(`Unsupported type: ${printer.type}`)
       }

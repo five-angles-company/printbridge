@@ -4,7 +4,10 @@ import { LoggerService } from './logger-service'
 import { db } from '../../db'
 import { printers, printerSettings } from '../../db/schema'
 import { checkPrinterStatus } from '../utils/windows-printing'
-import { UpdatePrinter } from '../../shared/types/db-types'
+import { PrinterWithSettings, UpdatePrinter } from '../../shared/types/db-types'
+import { LabelPrinter } from '../printers/label-printer'
+import { ReceiptPrinter } from '../printers/receipt-printer'
+import { LABEL_TEST_DATA, RECEIPT_TEST_DATA } from '../utils/constants'
 
 interface PrinterStatus {
   online: boolean
@@ -31,7 +34,11 @@ export class PrinterService extends EventEmitter {
     }
   } as const
 
-  constructor(private readonly logger: LoggerService) {
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly labelPrinter: LabelPrinter,
+    private readonly receiptPrinter: ReceiptPrinter
+  ) {
     super()
   }
 
@@ -102,6 +109,15 @@ export class PrinterService extends EventEmitter {
     })
   }
 
+  async getPrinter(printerId: number) {
+    return await db.query.printers.findFirst({
+      with: {
+        printerSettings: true
+      },
+      where: eq(printers.id, printerId)
+    })
+  }
+
   async createPrinter(printerName: string, printerType: 'receipt' | 'a4' | 'label') {
     return await db.transaction(async (tx) => {
       const printer = await tx
@@ -140,6 +156,19 @@ export class PrinterService extends EventEmitter {
 
   async deletePrinter(printerId: number) {
     return await db.delete(printers).where(eq(printers.id, printerId)).returning().get()
+  }
+
+  async testPrinter(printerId: number, printerType: 'receipt' | 'label') {
+    const printer = await this.getPrinter(printerId)
+    if (printerType === 'receipt' && printer?.printerSettings) {
+      return await this.receiptPrinter.print(
+        printer as PrinterWithSettings,
+        RECEIPT_TEST_DATA,
+        'test'
+      )
+    } else if (printerType === 'label') {
+      return await this.labelPrinter.print(printer as PrinterWithSettings, LABEL_TEST_DATA, 'test')
+    }
   }
 
   // ===========================

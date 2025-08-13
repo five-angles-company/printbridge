@@ -67,6 +67,7 @@ function ReceiptSettings({ settings, printerId, handleOpen }: ReceiptSettingsPro
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="58">58mm</SelectItem>
+                          <SelectItem value="72">72mm</SelectItem>
                           <SelectItem value="80">80mm</SelectItem>
                         </SelectContent>
                       </Select>

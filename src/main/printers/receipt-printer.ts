@@ -1,25 +1,36 @@
 import puppeteer from 'puppeteer'
 import { BasePrinter } from './base-printer'
-import path from 'path'
-import { writeFileSync } from 'fs'
 import ejs from 'ejs'
+import QRCode from 'qrcode'
 import { EscPosEncoder } from '../encoders/escpos-encoder'
-import { Printer, PrintJob } from '../../shared/types/db-types'
+import { PrinterWithSettings } from '../../shared/types/db-types'
+import {
+  ReceiptPrinterData,
+  ReceiptPrinterSettingsSchema
+} from '../../shared/schemas/receipt-printer'
 
 export class ReceiptPrinter extends BasePrinter {
-  async print(printer: Printer, job: PrintJob): Promise<void> {
-    const imageBuffer = await this.renderHtmlToImage(this.RECEIPT_TEMPLATE_PATH)
+  async print(
+    printer: PrinterWithSettings,
+    data: ReceiptPrinterData,
+    jobName: string
+  ): Promise<void> {
+    const settings = ReceiptPrinterSettingsSchema.parse(
+      JSON.parse(printer.printerSettings?.settings || '')
+    )
+    const imageBuffer = await this.renderHtmlToImage(this.RECEIPT_TEMPLATE_PATH, data)
 
     const encoder = new EscPosEncoder().initialize()
-    await encoder.image(imageBuffer)
+    await encoder.image(imageBuffer, settings.paper_size)
 
-    const escposData = encoder.feed(6).cut().getBuffer()
-    await this.printRawJob(printer.name, escposData, job.name)
+    const escposData = encoder.feed(6).cut(settings.cut).beep(settings.beep).getBuffer()
+    await this.printRawJob(printer.name, escposData, jobName)
   }
 
-  private async renderHtmlToImage(htmlFileName: string, data?: any): Promise<Buffer> {
-    const templatePath = path.join(process.cwd(), htmlFileName)
-    const html = await ejs.renderFile(templatePath, data, { async: true })
+  private async renderHtmlToImage(templatePath: string, data: ReceiptPrinterData): Promise<Buffer> {
+    const qrcode = await QRCode.toDataURL(data.clientId)
+
+    const html = await ejs.renderFile(templatePath, { data, qrcode }, { async: true })
 
     const browser = await puppeteer.launch({
       headless: true,
@@ -34,7 +45,6 @@ export class ReceiptPrinter extends BasePrinter {
       type: 'png',
       fullPage: true
     })
-    writeFileSync('screenshot.png', screenshot)
 
     await browser.close()
 

@@ -28,7 +28,8 @@ function LabelSettings({ settings, printerId, handleOpen }: LabelSettingsProps) 
       label_width: settings?.label_width || '',
       label_height: settings?.label_height || '',
       print_density: settings?.print_density || '',
-      print_speed: settings?.print_speed || ''
+      print_speed: settings?.print_speed || '',
+      encoder: settings?.encoder || ''
     },
     onSubmit: async ({ value }) => {
       await updateSettings.mutateAsync({ printerId, settings: value })
@@ -136,6 +137,29 @@ function LabelSettings({ settings, printerId, handleOpen }: LabelSettingsProps) 
                 }}
               />
             </div>
+            <form.Field
+              name="encoder"
+              children={(field) => {
+                return (
+                  <div className="space-y-2">
+                    <label htmlFor={field.name}>Encoder</label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => field.handleChange(value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select encoder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TSPL">TSPL</SelectItem>
+                        <SelectItem value="EPL">EPL</SelectItem>
+                        <SelectItem value="ZPL">ZPL</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )
+              }}
+            />
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-4">

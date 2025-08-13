@@ -48,5 +48,10 @@ export class PrinterHandlers {
       const printer = await this.printer.deletePrinter(printerId)
       return printer
     })
+
+    ipcMain.handle('printers:test', async (_event, data) => {
+      this.logger.debug('[IPC] printer:test', data)
+      await this.printer.testPrinter(data.printerId, data.type)
+    })
   }
 }

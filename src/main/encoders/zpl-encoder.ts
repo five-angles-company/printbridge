@@ -1,4 +1,9 @@
-export class ZplEncoder {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/services/encoders/zpl-encoder.ts
+
+import { LabelEncoder } from './label-encoder'
+
+export class ZplEncoder implements LabelEncoder {
   private lines: string[] = []
   private labelWidth = 800
   private labelHeight = 600
@@ -16,16 +21,38 @@ export class ZplEncoder {
     return y === 'center' ? Math.floor((this.labelHeight - height) / 2) : y
   }
 
-  start(): this {
+  start(_widthMm = 40, _heightMm = 20, _gapMm = 2): this {
     this.lines.push('^XA')
     return this
   }
 
-  text(x: number | 'center', y: number | 'center', font = 'A', h = 50, w = 50, content = ''): this {
-    const posX = this.resolveX(x, w * content.length)
-    const posY = this.resolveY(y, h)
+  setSpeed(speed: number): this {
+    // ZPL: ^PRp  (p = 0-30 cm/sec depending on model)
+    this.lines.push(`^PR${speed}`)
+    return this
+  }
+
+  setDensity(density: number): this {
+    // ZPL: ^MDn  (n = -30 to +30, default 0)
+    this.lines.push(`^MD${density}`)
+    return this
+  }
+
+  text(
+    x: number | 'center',
+    y: number | 'center',
+    font: string | number = 'A',
+    _rot = 0,
+    xMul = 50,
+    yMul = 50,
+    content = ''
+  ): this {
+    const width = content.length * xMul
+    const height = yMul
+    const posX = this.resolveX(x, width)
+    const posY = this.resolveY(y, height)
     this.lines.push(`^FO${posX},${posY}`)
-    this.lines.push(`^A${font},${h},${w}`)
+    this.lines.push(`^A${font},${yMul},${xMul}`)
     this.lines.push(`^FD${content}^FS`)
     return this
   }
@@ -35,7 +62,10 @@ export class ZplEncoder {
     y: number | 'center',
     type = 'BC',
     height = 100,
-    readable = true,
+    readable = 1,
+    _rot = 0,
+    _narrow = 2,
+    _wide = 2,
     content = ''
   ): this {
     const width = content.length * 16
@@ -50,15 +80,15 @@ export class ZplEncoder {
   qrcode(
     x: number | 'center',
     y: number | 'center',
-    model = 2,
-    magnification = 6,
+    _ecc = 'L',
+    cellWidth = 4,
     content = ''
   ): this {
-    const size = magnification * 21
+    const size = cellWidth * 21
     const posX = this.resolveX(x, size)
     const posY = this.resolveY(y, size)
     this.lines.push(`^FO${posX},${posY}`)
-    this.lines.push(`^BQN,${model},${magnification}`)
+    this.lines.push(`^BQN,2,${cellWidth}`)
     this.lines.push(`^FDLA,${content}^FS`)
     return this
   }
@@ -69,11 +99,7 @@ export class ZplEncoder {
     return this
   }
 
-  getOutput(): string {
-    return this.lines.join('\n')
-  }
-
   getBuffer(): Buffer {
-    return Buffer.from(this.getOutput(), 'ascii')
+    return Buffer.from(this.lines.join('\n'), 'ascii')
   }
 }

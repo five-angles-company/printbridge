@@ -1,4 +1,8 @@
-export class TsplEncoder {
+// src/services/encoders/tspl-encoder.ts
+
+import { LabelEncoder } from './label-encoder'
+
+export class TsplEncoder implements LabelEncoder {
   private lines: string[] = []
   private labelWidth = 800
   private labelHeight = 600
@@ -28,10 +32,22 @@ export class TsplEncoder {
     return this
   }
 
+  setSpeed(speed: number): this {
+    // TSPL: SPEED n  (n = 1 to 5 or printer supported range)
+    this.lines.push(`SPEED ${speed}`)
+    return this
+  }
+
+  setDensity(density: number): this {
+    // TSPL: DENSITY n  (n = 0 to 15)
+    this.lines.push(`DENSITY ${density}`)
+    return this
+  }
+
   text(
     x: number | 'center',
     y: number | 'center',
-    font = '0',
+    font: string | number = '0',
     rot = 0,
     xMul = 1,
     yMul = 1,
@@ -50,12 +66,12 @@ export class TsplEncoder {
   barcode(
     x: number | 'center',
     y: number | 'center',
-    type = 'ean13',
+    type = '128',
     height = 100,
     readable = 1,
     rot = 0,
     narrow = 2,
-    wide = 2,
+    wide = 0,
     content = ''
   ): this {
     const modulesPerChar = 9
@@ -81,11 +97,7 @@ export class TsplEncoder {
     return this
   }
 
-  getOutput(): string {
-    return this.lines.join('\r\n') + '\r\n'
-  }
-
   getBuffer(): Buffer {
-    return Buffer.from(this.getOutput(), 'ascii')
+    return Buffer.from(this.lines.join('\r\n') + '\r\n', 'ascii')
   }
 }

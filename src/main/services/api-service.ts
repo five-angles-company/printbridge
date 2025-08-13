@@ -5,7 +5,7 @@ import http from 'http'
 import { LoggerService } from './logger-service'
 import { PrintJobService } from './print-job-service'
 import { SettingsService } from './settings-service'
-import { Printer } from '../../shared/types/db-types'
+import { PrinterWithSettings } from '../../shared/types/db-types'
 import { PrintJobData } from '../../shared/types/api-types'
 
 interface ApiResponse<T = unknown> {
@@ -15,20 +15,17 @@ interface ApiResponse<T = unknown> {
 }
 
 export class ApiService extends EventEmitter {
-  private isConnected = false
-  private isProcessing = false
-  private isStopped = false
+  private running = false
+  private connected = false
+  private processing = false
   private failureCount = 0
-
-  private jobTimer?: NodeJS.Timeout
-  private heartbeatTimer?: NodeJS.Timeout
-  private reconnectTimer?: NodeJS.Timeout
+  private pollTimer?: NodeJS.Timeout
 
   private apiKey = ''
   private serverUrl = ''
   private clientId = ''
-  private receiptPrinter?: Printer
-  private labelPrinter?: Printer
+  private receiptPrinter?: PrinterWithSettings | null
+  private labelPrinter?: PrinterWithSettings | null
 
   constructor(
     private readonly logger: LoggerService,
@@ -36,165 +33,123 @@ export class ApiService extends EventEmitter {
     private readonly settingsService: SettingsService
   ) {
     super()
-    this.settingsService.on('settings:updated', () =>
+    this.settingsService.on('settings:updated', () => {
+      this.logger.info('Settings updated — restarting API service')
       this.restart().catch((err) => this.logger.error('Restart failed:', err))
-    )
+    })
   }
 
-  // Lifecycle Methods
+  /** Public lifecycle */
   async initialize(): Promise<void> {
+    this.logger.info('Initializing API Service...')
     await this.loadSettings()
-    await this.start()
-    this.logger.info('API Service initialized')
+    this.running = true
+    this.startPolling()
+    this.logger.info('API Service started')
   }
 
   async stop(): Promise<void> {
-    this.isStopped = true
-    this.clearTimers()
-    while (this.isProcessing) await this.sleep(100)
-    this.isConnected = false
+    if (!this.running) return
+    this.running = false
+    if (this.pollTimer) clearInterval(this.pollTimer)
+    while (this.processing) await this.sleep(50)
+    this.connected = false
     this.logger.info('API Service stopped')
+    this.emit('service:stopped')
   }
 
-  get connected(): boolean {
-    return this.isConnected
-  }
-
-  // Connection Management
-  private async start(): Promise<void> {
-    if (!this.hasConfig() || this.isStopped) {
-      this.handleConnectionLoss('Invalid configuration')
-      return
-    }
-
-    try {
-      await this.connect()
-      this.startHeartbeat()
-      this.startPolling()
-    } catch (err) {
-      this.logger.error('Connection failed:', err)
-      this.handleConnectionLoss('Connection failed')
-      this.scheduleReconnect()
-    }
-  }
-
-  private async restart(): Promise<void> {
-    this.handleConnectionLoss('Settings changed')
+  async restart(): Promise<void> {
+    const wasRunning = this.running
+    await this.stop()
     await this.loadSettings()
-    await this.start()
+    if (wasRunning) await this.initialize()
   }
 
-  private async connect(): Promise<void> {
-    const response = await this.request('POST', `/api/bridge/register?clientId=${this.clientId}`, {
-      timestamp: new Date().toISOString()
-    })
+  /** Main polling loop (also heartbeat) */
+  private startPolling(): void {
+    if (this.pollTimer) clearInterval(this.pollTimer)
 
-    if (!response.success) throw new Error(response.error || 'Connection failed')
+    this.pollTimer = setInterval(async () => {
+      if (!this.running || this.processing) return
+      this.processing = true
 
-    this.isConnected = true
-    this.failureCount = 0
-    this.emit('connection:established')
-    this.logger.info('Connected to API server')
-  }
+      if (!this.hasConfig()) {
+        this.logger.warn('Missing configuration — retrying later...')
+        this.processing = false
+        return
+      }
 
-  private handleConnectionLoss(reason: string): void {
-    if (!this.isConnected) return
-    this.isConnected = false
-    this.clearTimers()
-    this.emit('connection:lost')
-    this.logger.error(`Connection lost - ${reason}`)
+      try {
+        // This call acts as both heartbeat & job poll
+        const res = await this.request<{ jobs: PrintJobData[] }>(
+          'GET',
+          `/api/bridge/jobs?clientId=${this.clientId}`
+        )
+        if (!res.success) throw new Error(res.error || 'Polling failed')
+
+        if (!this.connected) {
+          this.connected = true
+          this.failureCount = 0
+          this.logger.info('Connected to API server')
+          this.emit('connection:established')
+        }
+
+        const jobs = res.data?.jobs || []
+        for (const job of jobs) {
+          if (!this.running) break
+          await this.processJob(job)
+        }
+      } catch (err) {
+        this.connected = false
+        this.logger.warn('Connection lost:', err)
+        this.emit('connection:lost')
+        this.scheduleReconnect()
+      } finally {
+        this.processing = false
+      }
+    }, 3000)
   }
 
   private scheduleReconnect(): void {
-    if (this.isStopped || this.reconnectTimer) return
-
     this.failureCount++
-    const delay = Math.min(1000 * this.failureCount, 30000)
-    this.logger.info(`Reconnecting in ${delay}ms`)
-
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = undefined
-      this.start().catch(() => {})
+    const delay = Math.min(this.failureCount * 2000, 30000)
+    this.logger.info(`Reconnecting in ${delay}ms...`)
+    setTimeout(() => {
+      if (!this.running) return
+      // Just let the next poll attempt handle reconnection
     }, delay)
   }
 
-  // Heartbeat
-  private startHeartbeat(): void {
-    this.heartbeatTimer = setInterval(() => this.checkHeartbeat(), 10000)
-  }
-
-  private async checkHeartbeat(): Promise<void> {
-    if (!this.isConnected || this.isStopped) return
-
-    try {
-      const response = await this.request('GET', `/api/bridge/heartbeat?clientId=${this.clientId}`)
-      if (!response.success) throw new Error('Heartbeat failed')
-    } catch (err) {
-      this.logger.warn('Heartbeat failed:', err)
-      this.handleConnectionLoss('Heartbeat failed')
-    }
-  }
-
-  // Job Processing
-  private startPolling(): void {
-    this.jobTimer = setInterval(() => this.pollJobs(), 3000)
-  }
-
-  private async pollJobs(): Promise<void> {
-    if (!this.isConnected || this.isProcessing || this.isStopped) return
-
-    try {
-      const response = await this.request<{ jobs: PrintJobData[] }>(
-        'GET',
-        `/api/bridge/jobs?clientId=${this.clientId}`
-      )
-      const jobs = response.data?.jobs || []
-      if (jobs.length > 0) await this.processJobs(jobs)
-    } catch (err) {
-      this.logger.warn('Job polling failed:', err)
-      this.handleConnectionLoss('Job polling failed')
-    }
-  }
-
-  private async processJobs(jobs: PrintJobData[]): Promise<void> {
-    this.isProcessing = true
-    try {
-      for (const job of jobs) {
-        if (this.isStopped) break
-        await this.processJob(job)
-      }
-    } finally {
-      this.isProcessing = false
-    }
-  }
-
+  /** Job processing */
   private async processJob(job: PrintJobData): Promise<void> {
     try {
       const printer = job.type === 'label' ? this.labelPrinter : this.receiptPrinter
-      if (!printer) throw new Error(`No ${job.type} printer`)
-
-      await this.printJobService.execute(printer.name, {
+      console.log(printer)
+      if (!printer) throw new Error(`No ${job.type} printer configured`)
+      await this.printJobService.execute(printer, {
         name: job.name,
         type: job.type,
-        data: JSON.stringify(job.data),
+        data: job.data,
         printerId: printer.id,
         createdAt: Date.now()
       })
 
       await this.request('POST', `/api/bridge/jobs/${job.id}/complete`)
+      this.emit('job:success', job)
       this.logger.info(`Job completed: ${job.name}`)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      const reason = err instanceof Error ? err.message : 'Unknown error'
       try {
-        await this.request('POST', `/api/bridge/jobs/${job.id}/fail`, { reason: errorMessage })
-      } catch {
-        this.logger.error('Failed to report job failure:', err)
+        await this.request('POST', `/api/bridge/jobs/${job.id}/fail`, { reason })
+      } catch (reportErr) {
+        this.logger.error('Failed to report job failure:', reportErr)
       }
+      this.emit('job:failure', job, reason)
       this.logger.error(`Job failed: ${job.name}`, err)
     }
   }
 
-  // HTTP Requests
+  /** HTTP helper */
   private async request<T = unknown>(
     method: string,
     path: string,
@@ -205,11 +160,6 @@ export class ApiService extends EventEmitter {
     const data = body ? JSON.stringify(body) : undefined
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        req.destroy()
-        reject(new Error('Timeout'))
-      }, 10000)
-
       const req = client.request(
         {
           method,
@@ -220,57 +170,45 @@ export class ApiService extends EventEmitter {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.apiKey}`,
             ...(data && { 'Content-Length': Buffer.byteLength(data) })
-          }
+          },
+          timeout: 10000
         },
         (res) => {
-          clearTimeout(timeout)
           let raw = ''
           res.on('data', (chunk) => (raw += chunk))
           res.on('end', () => {
             try {
               resolve(JSON.parse(raw))
             } catch {
-              reject(new Error('Invalid response'))
+              this.logger.error('Invalid JSON response:', raw)
+              reject(new Error('Invalid response from server'))
             }
           })
         }
       )
-
-      req.on('error', (err) => {
-        clearTimeout(timeout)
-        reject(err)
-      })
-
+      req.on('error', reject)
       if (data) req.write(data)
       req.end()
     })
   }
 
-  // Utilities
+  /** Settings */
   private async loadSettings(): Promise<void> {
     try {
       const settings = await this.settingsService.loadSettings()
       this.apiKey = settings?.apiKey || ''
       this.serverUrl = settings?.serverUrl || ''
       this.clientId = settings?.clientId || ''
-      this.receiptPrinter = settings?.receiptPrinter || undefined
-      this.labelPrinter = settings?.barcodePrinter || undefined
+      this.receiptPrinter = settings?.receiptPrinter
+      this.labelPrinter = settings?.barcodePrinter
+      this.logger.info('Settings loaded successfully')
     } catch (err) {
       this.logger.error('Failed to load settings:', err)
     }
   }
 
   private hasConfig(): boolean {
-    return !!(this.apiKey && this.serverUrl && this.clientId)
-  }
-
-  private clearTimers(): void {
-    if (this.jobTimer) clearInterval(this.jobTimer)
-    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
-    this.jobTimer = undefined
-    this.heartbeatTimer = undefined
-    this.reconnectTimer = undefined
+    return Boolean(this.apiKey && this.serverUrl && this.clientId)
   }
 
   private sleep(ms: number): Promise<void> {

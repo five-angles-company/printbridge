@@ -51,7 +51,7 @@ function PrinterCard({ printer }: PrinterCardProps) {
   }
 
   const handleTestPrinter = () => {
-    invokeIpc('printers:print-html', { printerName: printer.name, html: '<h1>Test</h1>' })
+    invokeIpc('printers:test', { printerId: printer.id, type: printer.type })
   }
 
   return (
