@@ -6,10 +6,7 @@ import { LabelPrinterData } from '../../shared/schemas/label-printer'
 
 // BasePrinter.ts
 export abstract class BasePrinter {
-  protected readonly RECEIPT_TEMPLATE_PATH = path.join(
-    process.cwd(),
-    'src/main/templates/receipt.ejs'
-  )
+  protected readonly RECEIPT_TEMPLATE_PATH = path.join(__dirname, '../../resources', 'receipt.ejs')
 
   abstract print(
     Printer: Printer,

@@ -30,13 +30,13 @@ class Main {
       // DI Wiring
       const receiptPrinter = new ReceiptPrinter()
       const labelPrinter = new LabelPrinter()
-      const dashboard = new DashboardService(this.logger)
+      const dashboard = new DashboardService()
       const printer = new PrinterService(this.logger, labelPrinter, receiptPrinter)
       const printJob = new PrintJobService(this.logger, receiptPrinter, labelPrinter)
       const settings = new SettingsService(this.logger)
       const api = new ApiService(this.logger, printJob, settings)
       const windowManager = new WindowManager(this.logger, process.env.NODE_ENV === 'development')
-      const menuBuilder = new MenuBuilder(this.logger, windowManager)
+      const menuBuilder = new MenuBuilder()
 
       this.appCore = new AppCore(
         this.logger,

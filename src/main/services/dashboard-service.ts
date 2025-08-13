@@ -1,10 +1,8 @@
 import { count, desc, eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { printers, printJobs } from '../../db/schema'
-import { LoggerService } from './logger-service'
 
 export class DashboardService {
-  constructor(private readonly logger: LoggerService) {}
   async getStats() {
     const [totalPrinters, totalJobs, successRate] = await Promise.all([
       this.getTotalPrinters(),

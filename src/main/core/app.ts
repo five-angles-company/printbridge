@@ -109,7 +109,7 @@ export class AppCore {
   private initializeHandlers() {
     new PrinterHandlers(this.printer, this.logger)
     new DashboardHandlers(this.dashboard, this.logger)
-    new ApiHandlers(this.api, this.logger)
+    new ApiHandlers(this.logger)
     new SettingsHandlers(this.printer, this.settings, this.logger)
   }
 
