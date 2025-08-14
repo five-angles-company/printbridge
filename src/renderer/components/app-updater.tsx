@@ -41,7 +41,7 @@ function AppUpdater() {
 
     window.electron.on('update:available', handleAvailable)
     window.electron.on('update:none', handleNoUpdate)
-    window.electron.on('update:download-progress', handleProgress)
+    window.electron.on('update:progress', handleProgress)
     window.electron.on('update:downloaded', handleDownloaded)
 
     return () => {
