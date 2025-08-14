@@ -1,3 +1,4 @@
+import AppUpdater from '@renderer/components/app-updater'
 import ConnectionSettings from '@renderer/components/forms/connection-settings'
 import PrintersSettings from '@renderer/components/forms/printers-settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
@@ -39,6 +40,14 @@ function RouteComponent() {
           </CardHeader>
           <CardContent>
             <PrintersSettings settings={data.settings} printers={data.printers} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>App Updates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AppUpdater />
           </CardContent>
         </Card>
       </div>

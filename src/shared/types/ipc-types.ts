@@ -87,4 +87,16 @@ export type IpcChannels = {
     args: UpdateSettings
     return: object
   }
+  'update:check': {
+    args?: object
+    return: void
+  }
+  'update:download': {
+    args?: object
+    return: void
+  }
+  'update:install': {
+    args?: object
+    return: void
+  }
 }

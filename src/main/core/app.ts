@@ -6,15 +6,19 @@ import type { MenuBuilder } from './menu-builder'
 import type { PrinterService } from '../services/printer-service'
 import type { ApiService } from '../services/api-service'
 import type { LoggerService } from '../services/logger-service'
+import type { UpdateService } from '../services/update-service'
+
+// Services
+import { SettingsService } from '../services/settings-service'
+import { PrintJobService } from '../services/print-job-service'
+import { DashboardService } from '../services/dashboard-service'
 
 // Handlers
 import { PrinterHandlers } from '../handlers/printer-handlers'
 import { ApiHandlers } from '../handlers/api-handlers'
-import { SettingsService } from '../services/settings-service'
-import { PrintJobService } from '../services/print-job-service'
 import { SettingsHandlers } from '../handlers/settings-handlers'
-import { DashboardService } from '../services/dashboard-service'
 import { DashboardHandlers } from '../handlers/dashboard-handlers'
+import { UpdateHandlers } from '../handlers/update-handlers'
 
 export class AppCore {
   private readonly isDev: boolean
@@ -28,16 +32,23 @@ export class AppCore {
     private readonly printJob: PrintJobService,
     private readonly settings: SettingsService,
     private readonly api: ApiService,
+    private readonly updater: UpdateService,
     public readonly windowManager: WindowManager,
     private readonly menuBuilder: MenuBuilder
   ) {
     this.isDev = process.env.NODE_ENV === 'development'
   }
 
+  /* -------------------------------------------------------------------------- */
+  /*                               INITIALIZATION                               */
+  /* -------------------------------------------------------------------------- */
+
   public async initialize() {
     this.setupAppEvents()
 
-    if (!app.isReady()) await app.whenReady()
+    if (!app.isReady()) {
+      await app.whenReady()
+    }
 
     await this.initializeServices()
     this.initializeHandlers()
@@ -50,7 +61,9 @@ export class AppCore {
     app.on('ready', () => this.logger.info('📱 Electron ready'))
 
     app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin') this.shutdown()
+      if (process.platform !== 'darwin') {
+        this.shutdown()
+      }
     })
 
     app.on('activate', async () => {
@@ -81,7 +94,26 @@ export class AppCore {
 
     await this.api.initialize()
     this.bindApiEvents()
+
+    this.updater.initialize()
+    this.bindUpdateEvents()
   }
+
+  private initializeHandlers() {
+    new PrinterHandlers(this.printer, this.logger)
+    new DashboardHandlers(this.dashboard, this.logger)
+    new ApiHandlers(this.logger)
+    new SettingsHandlers(this.printer, this.settings, this.logger)
+    new UpdateHandlers(this.updater, this.logger)
+  }
+
+  private async initializeUI() {
+    await this.createMainWindow()
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                                EVENT BINDING                               */
+  /* -------------------------------------------------------------------------- */
 
   private bindPrinterEvents() {
     this.printer.on('printer:status-changed', (status) => {
@@ -106,36 +138,62 @@ export class AppCore {
     })
   }
 
-  private initializeHandlers() {
-    new PrinterHandlers(this.printer, this.logger)
-    new DashboardHandlers(this.dashboard, this.logger)
-    new ApiHandlers(this.logger)
-    new SettingsHandlers(this.printer, this.settings, this.logger)
+  private bindUpdateEvents() {
+    this.updater.on('checking', () => {
+      this.logger.info('Checking for updates...')
+      this.broadcast('update:checking', null)
+    })
+
+    this.updater.on('update-available', (info) => {
+      this.logger.info('Update available', info)
+      this.broadcast('update:available', info)
+    })
+
+    this.updater.on('no-update', () => {
+      this.logger.info('No updates available')
+      this.broadcast('update:none', null)
+    })
+
+    this.updater.on('download-progress', (percent) => {
+      this.logger.info(`Update download progress: ${percent}%`)
+      this.broadcast('update:progress', percent)
+    })
+
+    this.updater.on('update-downloaded', (info) => {
+      this.logger.info('Update downloaded', info)
+      this.broadcast('update:downloaded', info)
+    })
+
+    this.updater.on('error', (error) => {
+      this.logger.error('Update error:', error)
+      this.broadcast('update:error', error)
+    })
   }
 
-  private async initializeUI() {
-    await this.createMainWindow()
-  }
+  /* -------------------------------------------------------------------------- */
+  /*                                    UI                                      */
+  /* -------------------------------------------------------------------------- */
 
   public async createMainWindow() {
     const win = await this.windowManager.createMainWindow()
     this.menuBuilder.setMenu(this.menuBuilder.buildMenu())
     win.show()
-
-    if (this.isDev) {
-      win.webContents.openDevTools()
-    }
   }
 
   private broadcast(channel: string, data: any) {
     this.windowManager?.broadcastToAll(channel, data)
   }
 
+  /* -------------------------------------------------------------------------- */
+  /*                                APP LIFECYCLE                               */
+  /* -------------------------------------------------------------------------- */
+
   public async shutdown() {
     if (this.isShuttingDown) return
     this.isShuttingDown = true
 
     this.logger.info('Shutting down...')
+
     try {
       await Promise.all([this.api?.stop(), this.printer?.stop(), this.logger.flush()])
       this.windowManager?.closeAll()
@@ -152,13 +210,18 @@ export class AppCore {
     app.relaunch()
   }
 
+  /* -------------------------------------------------------------------------- */
+  /*                                  STATUS                                    */
+  /* -------------------------------------------------------------------------- */
+
   public getStatus() {
     return {
       initialized: this.isInitialized,
       development: this.isDev,
       services: {
         printer: !!this.printer,
-        api: !!this.api
+        api: !!this.api,
+        updater: !!this.updater
       }
     }
   }
