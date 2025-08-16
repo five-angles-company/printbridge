@@ -5,5 +5,4 @@ out
 .eslintcache
 logs*
 changes.patch
-*.db
 
